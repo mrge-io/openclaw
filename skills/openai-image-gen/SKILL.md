@@ -75,6 +75,7 @@ Different models support different parameter values. The script automatically se
 
 ### Other Notable Differences
 
+- **Count limit:** `--count` is capped at 16 to prevent runaway API spend.
 - **dall-e-3** only supports generating 1 image at a time (`n=1`). The script automatically limits count to 1 when using this model.
 - **GPT image models** support additional parameters:
   - `--background`: `transparent`, `opaque`, or `auto` (default)

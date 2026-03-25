@@ -160,10 +160,13 @@ def write_gallery(out_dir: Path, items: list[dict]) -> None:
     (out_dir / "index.html").write_text(html, encoding="utf-8")
 
 
+MAX_COUNT = 16
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Generate images via OpenAI Images API.")
     ap.add_argument("--prompt", help="Single prompt. If omitted, random prompts are generated.")
-    ap.add_argument("--count", type=int, default=8, help="How many images to generate.")
+    ap.add_argument("--count", type=int, default=8, help=f"How many images to generate (1–{MAX_COUNT}).")
     ap.add_argument("--model", default="gpt-image-1", help="Image model id.")
     ap.add_argument("--size", default="", help="Image size (e.g. 1024x1024, 1536x1024). Defaults based on model if not specified.")
     ap.add_argument("--quality", default="", help="Image quality (e.g. high, standard). Defaults based on model if not specified.")
@@ -184,6 +187,12 @@ def main() -> int:
     quality = args.quality or default_quality
 
     count = args.count
+    if count < 1:
+        print("Error: --count must be at least 1.", file=sys.stderr)
+        return 1
+    if count > MAX_COUNT:
+        print(f"Error: --count may not exceed {MAX_COUNT} (got {count}).", file=sys.stderr)
+        return 1
     if args.model == "dall-e-3" and count > 1:
         print(f"Warning: dall-e-3 only supports generating 1 image at a time. Reducing count from {count} to 1.", file=sys.stderr)
         count = 1
