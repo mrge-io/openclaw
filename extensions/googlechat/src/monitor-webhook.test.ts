@@ -120,7 +120,7 @@ describe("googlechat monitor webhook", () => {
     expect(verifyGoogleChatRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         bearer: "addon-token",
-        expectedAddOnPrincipal: "chat-app",
+        expectedPrincipal: "chat-app",
       }),
     );
     expect(processEvent).toHaveBeenCalledWith(

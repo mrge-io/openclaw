@@ -208,11 +208,30 @@ function mockTicket(payload: Record<string, unknown>) {
 }
 
 describe("verifyGoogleChatRequest", () => {
-  it("accepts Google Chat app-url tokens from the Chat issuer", async () => {
+  it("accepts Chat issuer tokens when principal matches", async () => {
     mocks.verifyIdToken.mockReset();
     mockTicket({
       email: "chat@system.gserviceaccount.com",
       email_verified: true,
+      sub: "12345",
+    });
+
+    await expect(
+      verifyGoogleChatRequest({
+        bearer: "token",
+        audienceType: "app-url",
+        audience: "https://example.com/googlechat",
+        expectedPrincipal: "12345",
+      }),
+    ).resolves.toEqual({ ok: true });
+  });
+
+  it("rejects Chat issuer tokens when no principal binding is configured", async () => {
+    mocks.verifyIdToken.mockReset();
+    mockTicket({
+      email: "chat@system.gserviceaccount.com",
+      email_verified: true,
+      sub: "12345",
     });
 
     await expect(
@@ -221,7 +240,31 @@ describe("verifyGoogleChatRequest", () => {
         audienceType: "app-url",
         audience: "https://example.com/googlechat",
       }),
-    ).resolves.toEqual({ ok: true });
+    ).resolves.toEqual({
+      ok: false,
+      reason: "missing principal binding (appPrincipal config required)",
+    });
+  });
+
+  it("rejects Chat issuer tokens when principal does not match", async () => {
+    mocks.verifyIdToken.mockReset();
+    mockTicket({
+      email: "chat@system.gserviceaccount.com",
+      email_verified: true,
+      sub: "99999",
+    });
+
+    await expect(
+      verifyGoogleChatRequest({
+        bearer: "token",
+        audienceType: "app-url",
+        audience: "https://example.com/googlechat",
+        expectedPrincipal: "12345",
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "unexpected principal: 99999",
+    });
   });
 
   it("rejects add-on tokens when no principal binding is configured", async () => {
@@ -240,7 +283,7 @@ describe("verifyGoogleChatRequest", () => {
       }),
     ).resolves.toEqual({
       ok: false,
-      reason: "missing add-on principal binding",
+      reason: "missing principal binding (appPrincipal config required)",
     });
   });
 
@@ -257,7 +300,7 @@ describe("verifyGoogleChatRequest", () => {
         bearer: "token",
         audienceType: "app-url",
         audience: "https://example.com/googlechat",
-        expectedAddOnPrincipal: "principal-1",
+        expectedPrincipal: "principal-1",
       }),
     ).resolves.toEqual({ ok: true });
   });
@@ -275,11 +318,11 @@ describe("verifyGoogleChatRequest", () => {
         bearer: "token",
         audienceType: "app-url",
         audience: "https://example.com/googlechat",
-        expectedAddOnPrincipal: "principal-1",
+        expectedPrincipal: "principal-1",
       }),
     ).resolves.toEqual({
       ok: false,
-      reason: "unexpected add-on principal: principal-2",
+      reason: "unexpected principal: principal-2",
     });
   });
 });
