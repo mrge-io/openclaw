@@ -94,7 +94,7 @@ export async function verifyGoogleChatRequest(params: {
   bearer?: string | null;
   audienceType?: GoogleChatAudienceType | null;
   audience?: string | null;
-  expectedAddOnPrincipal?: string | null;
+  expectedPrincipal?: string | null;
 }): Promise<{ ok: boolean; reason?: string }> {
   const bearer = params.bearer?.trim();
   if (!bearer) {
@@ -119,23 +119,20 @@ export async function verifyGoogleChatRequest(params: {
       if (!payload?.email_verified) {
         return { ok: false, reason: "email not verified" };
       }
-      if (email === CHAT_ISSUER) {
-        return { ok: true };
-      }
-      if (!ADDON_ISSUER_PATTERN.test(email)) {
+      if (email !== CHAT_ISSUER && !ADDON_ISSUER_PATTERN.test(email)) {
         return { ok: false, reason: `invalid issuer: ${email}` };
       }
-      const expectedAddOnPrincipal = params.expectedAddOnPrincipal?.trim().toLowerCase();
-      if (!expectedAddOnPrincipal) {
-        return { ok: false, reason: "missing add-on principal binding" };
+      const expectedPrincipal = params.expectedPrincipal?.trim().toLowerCase();
+      if (!expectedPrincipal) {
+        return { ok: false, reason: "missing principal binding (appPrincipal config required)" };
       }
       const tokenPrincipal = String(payload?.sub ?? "")
         .trim()
         .toLowerCase();
-      if (!tokenPrincipal || tokenPrincipal !== expectedAddOnPrincipal) {
+      if (!tokenPrincipal || tokenPrincipal !== expectedPrincipal) {
         return {
           ok: false,
-          reason: `unexpected add-on principal: ${tokenPrincipal || "<missing>"}`,
+          reason: `unexpected principal: ${tokenPrincipal || "<missing>"}`,
         };
       }
       return { ok: true };
