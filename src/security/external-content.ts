@@ -191,53 +191,21 @@ function foldMarkerText(input: string): string {
 
 function replaceMarkers(content: string): string {
   const folded = foldMarkerText(content);
-  // Intentionally catch whitespace-delimited spoof variants (space, tab, newline) in addition
-  // to the legacy underscore form because LLMs may still parse them as trusted boundary markers.
   if (!/external[\s_]+untrusted[\s_]+content/i.test(folded)) {
     return content;
   }
-  const replacements: Array<{ start: number; end: number; value: string }> = [];
-  // Match markers with or without id attribute (handles both legacy and spoofed markers)
-  const patterns: Array<{ regex: RegExp; value: string }> = [
-    {
-      regex: /<<<\s*EXTERNAL[\s_]+UNTRUSTED[\s_]+CONTENT(?:\s+id="[^"]{1,128}")?\s*>>>/gi,
-      value: "[[MARKER_SANITIZED]]",
-    },
-    {
-      regex: /<<<\s*END[\s_]+EXTERNAL[\s_]+UNTRUSTED[\s_]+CONTENT(?:\s+id="[^"]{1,128}")?\s*>>>/gi,
-      value: "[[END_MARKER_SANITIZED]]",
-    },
-  ];
 
-  for (const pattern of patterns) {
-    pattern.regex.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = pattern.regex.exec(folded)) !== null) {
-      replacements.push({
-        start: match.index,
-        end: match.index + match[0].length,
-        value: pattern.value,
-      });
-    }
-  }
+  let sanitized = folded;
+  sanitized = sanitized.replace(
+    /<<<\s*END[\s_]+EXTERNAL[\s_]+UNTRUSTED[\s_]+CONTENT(?:\s+id="[^"]{1,128}")?\s*>>>/gi,
+    "[[END_MARKER_SANITIZED]]",
+  );
+  sanitized = sanitized.replace(
+    /<<<\s*EXTERNAL[\s_]+UNTRUSTED[\s_]+CONTENT(?:\s+id="[^"]{1,128}")?\s*>>>/gi,
+    "[[MARKER_SANITIZED]]",
+  );
 
-  if (replacements.length === 0) {
-    return content;
-  }
-  replacements.sort((a, b) => a.start - b.start);
-
-  let cursor = 0;
-  let output = "";
-  for (const replacement of replacements) {
-    if (replacement.start < cursor) {
-      continue;
-    }
-    output += content.slice(cursor, replacement.start);
-    output += replacement.value;
-    cursor = replacement.end;
-  }
-  output += content.slice(cursor);
-  return output;
+  return sanitized;
 }
 
 export type WrapExternalContentOptions = {
